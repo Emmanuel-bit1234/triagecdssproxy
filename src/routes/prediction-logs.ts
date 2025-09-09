@@ -20,6 +20,7 @@ predictionLogsRoute.get('/', authMiddleware, async (c) => {
       .select({
         id: predictionLogs.id,
         userId: predictionLogs.userId,
+        patientNumber: predictionLogs.patientNumber,
         inputs: predictionLogs.inputs,
         predict: predictionLogs.predict,
         ktasExplained: predictionLogs.ktasExplained,
@@ -73,6 +74,7 @@ predictionLogsRoute.get('/:id', authMiddleware, async (c) => {
       .select({
         id: predictionLogs.id,
         userId: predictionLogs.userId,
+        patientNumber: predictionLogs.patientNumber,
         inputs: predictionLogs.inputs,
         predict: predictionLogs.predict,
         ktasExplained: predictionLogs.ktasExplained,
@@ -108,7 +110,7 @@ predictionLogsRoute.post('/', authMiddleware, async (c) => {
     const body: PredictionLogData = await c.req.json();
 
     // Validate required fields
-    if (!body.inputs || !body.predict || !body.ktasExplained || !body.probs || !body.model) {
+    if (!body.patientNumber || !body.inputs || !body.predict || !body.ktasExplained || !body.probs || !body.model) {
       return c.json({ error: 'Missing required fields' }, 400);
     }
 
@@ -116,6 +118,7 @@ predictionLogsRoute.post('/', authMiddleware, async (c) => {
       .insert(predictionLogs)
       .values({
         userId: user.id,
+        patientNumber: body.patientNumber,
         inputs: body.inputs,
         predict: body.predict,
         ktasExplained: body.ktasExplained,
@@ -156,6 +159,7 @@ predictionLogsRoute.put('/:id', authMiddleware, async (c) => {
     const updatedLog = await db
       .update(predictionLogs)
       .set({
+        patientNumber: body.patientNumber || existingLog[0].patientNumber,
         inputs: body.inputs || existingLog[0].inputs,
         predict: body.predict || existingLog[0].predict,
         ktasExplained: body.ktasExplained || existingLog[0].ktasExplained,

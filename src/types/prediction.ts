@@ -30,6 +30,7 @@ export interface PredictionResponse {
 }
 
 export interface PredictionLogData {
+  patientNumber: string;
   inputs: PredictionInputs;
   predict: number;
   ktasExplained: KtasExplained;
@@ -40,6 +41,7 @@ export interface PredictionLogData {
 export interface PredictionLogWithUser {
   id: number;
   userId: number;
+  patientNumber: string;
   inputs: PredictionInputs;
   predict: number;
   ktasExplained: KtasExplained;

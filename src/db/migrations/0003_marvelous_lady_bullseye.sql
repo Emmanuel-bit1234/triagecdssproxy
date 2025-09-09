@@ -1,0 +1,1 @@
+ALTER TABLE "prediction_logs" ALTER COLUMN "patient_number" DROP NOT NULL;

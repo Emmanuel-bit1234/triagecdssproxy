@@ -1,0 +1,1 @@
+ALTER TABLE "prediction_logs" ADD COLUMN "patient_number" varchar(255) NOT NULL;

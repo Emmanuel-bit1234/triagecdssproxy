@@ -12,6 +12,7 @@ export const users = pgTable('users', {
 export const predictionLogs = pgTable('prediction_logs', {
   id: serial('id').primaryKey(),
   userId: integer('user_id').notNull().references(() => users.id),
+  patientNumber: varchar('patient_number', { length: 255 }).notNull(),
   inputs: jsonb('inputs').notNull(),
   predict: integer('predict').notNull(),
   ktasExplained: jsonb('ktas_explained').notNull(),
