@@ -50,6 +50,7 @@ app.post("/predict", authMiddleware, async (context) => {
     try {
       await db.insert(predictionLogs).values({
         userId: user.id,
+        patientNumber: body.patientNumber,
         inputs: payloadResults.inputs,
         predict: payloadResults.Predict,
         ktasExplained: payloadResults.Ktas_Explained, // Note: underscore instead of space
