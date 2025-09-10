@@ -8,10 +8,9 @@ import type { PredictionLogData, PredictionLogWithUser } from '../types/predicti
 
 const predictionLogsRoute = new Hono<{ Variables: AuthVariables }>();
 
-// Get all prediction logs for the authenticated user
+// Get all prediction logs (any logged-in user can view all predictions)
 predictionLogsRoute.get('/', authMiddleware, async (c) => {
   try {
-    const user = c.get('user');
     const page = parseInt(c.req.query('page') || '1');
     const limit = parseInt(c.req.query('limit') || '10');
     const offset = (page - 1) * limit;
@@ -35,15 +34,13 @@ predictionLogsRoute.get('/', authMiddleware, async (c) => {
       })
       .from(predictionLogs)
       .innerJoin(users, eq(predictionLogs.userId, users.id))
-      .where(eq(predictionLogs.userId, user.id))
       .orderBy(desc(predictionLogs.createdAt))
       .limit(limit)
       .offset(offset);
 
     const totalCount = await db
       .select({ count: predictionLogs.id })
-      .from(predictionLogs)
-      .where(eq(predictionLogs.userId, user.id));
+      .from(predictionLogs);
 
     return c.json({
       logs,
@@ -60,10 +57,9 @@ predictionLogsRoute.get('/', authMiddleware, async (c) => {
   }
 });
 
-// Get a specific prediction log by ID
+// Get a specific prediction log by ID (any logged-in user can view any prediction)
 predictionLogsRoute.get('/:id', authMiddleware, async (c) => {
   try {
-    const user = c.get('user');
     const logId = parseInt(c.req.param('id'));
 
     if (isNaN(logId)) {
@@ -89,7 +85,7 @@ predictionLogsRoute.get('/:id', authMiddleware, async (c) => {
       })
       .from(predictionLogs)
       .innerJoin(users, eq(predictionLogs.userId, users.id))
-      .where(and(eq(predictionLogs.id, logId), eq(predictionLogs.userId, user.id)))
+      .where(eq(predictionLogs.id, logId))
       .limit(1);
 
     if (log.length === 0) {
@@ -202,19 +198,16 @@ predictionLogsRoute.delete('/:id', authMiddleware, async (c) => {
   }
 });
 
-// Get prediction statistics for the user
+// Get prediction statistics for all predictions
 predictionLogsRoute.get('/stats/summary', authMiddleware, async (c) => {
   try {
-    const user = c.get('user');
-
     const stats = await db
       .select({
         totalPredictions: predictionLogs.id,
         avgPrediction: predictionLogs.predict,
         mostCommonLevel: predictionLogs.predict,
       })
-      .from(predictionLogs)
-      .where(eq(predictionLogs.userId, user.id));
+      .from(predictionLogs);
 
     // Get prediction level distribution
     const levelDistribution = await db
@@ -222,8 +215,7 @@ predictionLogsRoute.get('/stats/summary', authMiddleware, async (c) => {
         level: predictionLogs.predict,
         count: predictionLogs.id,
       })
-      .from(predictionLogs)
-      .where(eq(predictionLogs.userId, user.id));
+      .from(predictionLogs);
 
     return c.json({
       totalPredictions: stats.length,
