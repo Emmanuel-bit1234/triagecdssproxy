@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { db } from '../db/connection.js';
 import { predictionLogs, users } from '../db/schema.js';
 import { authMiddleware } from '../auth/middleware.js';
-import { eq, desc, and } from 'drizzle-orm';
+import { eq, desc, and, gte, sql } from 'drizzle-orm';
 import type { AuthVariables } from '../types/auth.js';
 import type { PredictionLogData, PredictionLogWithUser } from '../types/prediction.js';
 
@@ -227,6 +227,54 @@ predictionLogsRoute.get('/stats/summary', authMiddleware, async (c) => {
   } catch (error) {
     console.error('Error fetching prediction stats:', error);
     return c.json({ error: 'Failed to fetch prediction statistics' }, 500);
+  }
+});
+
+// Get prediction count in the last 24 hours
+predictionLogsRoute.get('/stats/last-24h', authMiddleware, async (c) => {
+  try {
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(predictionLogs)
+      .where(gte(predictionLogs.createdAt, twentyFourHoursAgo));
+
+    return c.json({
+      count: result[0]?.count || 0,
+      period: 'last_24_hours',
+      from: twentyFourHoursAgo.toISOString(),
+      to: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Error fetching 24h prediction count:', error);
+    return c.json({ error: 'Failed to fetch 24h prediction count' }, 500);
+  }
+});
+
+// Get male and female patient counts
+predictionLogsRoute.get('/stats/patient-gender', authMiddleware, async (c) => {
+  try {
+    const genderStats = await db
+      .select({
+        gender: sql<number>`CAST((${predictionLogs.inputs}->>'Sex') AS INTEGER)`,
+        count: sql<number>`count(*)`,
+      })
+      .from(predictionLogs)
+      .groupBy(sql`CAST((${predictionLogs.inputs}->>'Sex') AS INTEGER)`);
+
+    // Process the results to get male/female counts
+    const maleCount = genderStats.find(stat => stat.gender === 1)?.count || 0;
+    const femaleCount = genderStats.find(stat => stat.gender === 0)?.count || 0;
+
+    return c.json({
+      male: maleCount,
+      female: femaleCount,
+      total: maleCount + femaleCount,
+    });
+  } catch (error) {
+    console.error('Error fetching patient gender stats:', error);
+    return c.json({ error: 'Failed to fetch patient gender statistics' }, 500);
   }
 });
 

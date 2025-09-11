@@ -2,12 +2,11 @@ import { Hono } from 'hono';
 import { db } from '../db/connection.js';
 import { predictionLogs, users } from '../db/schema.js';
 import { authMiddleware } from '../auth/middleware.js';
-import { eq, desc, and } from 'drizzle-orm';
+import { eq, desc, and, gte, sql } from 'drizzle-orm';
 const predictionLogsRoute = new Hono();
-// Get all prediction logs for the authenticated user
+// Get all prediction logs (any logged-in user can view all predictions)
 predictionLogsRoute.get('/', authMiddleware, async (c) => {
     try {
-        const user = c.get('user');
         const page = parseInt(c.req.query('page') || '1');
         const limit = parseInt(c.req.query('limit') || '10');
         const offset = (page - 1) * limit;
@@ -30,14 +29,12 @@ predictionLogsRoute.get('/', authMiddleware, async (c) => {
         })
             .from(predictionLogs)
             .innerJoin(users, eq(predictionLogs.userId, users.id))
-            .where(eq(predictionLogs.userId, user.id))
             .orderBy(desc(predictionLogs.createdAt))
             .limit(limit)
             .offset(offset);
         const totalCount = await db
             .select({ count: predictionLogs.id })
-            .from(predictionLogs)
-            .where(eq(predictionLogs.userId, user.id));
+            .from(predictionLogs);
         return c.json({
             logs,
             pagination: {
@@ -53,10 +50,9 @@ predictionLogsRoute.get('/', authMiddleware, async (c) => {
         return c.json({ error: 'Failed to fetch prediction logs' }, 500);
     }
 });
-// Get a specific prediction log by ID
+// Get a specific prediction log by ID (any logged-in user can view any prediction)
 predictionLogsRoute.get('/:id', authMiddleware, async (c) => {
     try {
-        const user = c.get('user');
         const logId = parseInt(c.req.param('id'));
         if (isNaN(logId)) {
             return c.json({ error: 'Invalid log ID' }, 400);
@@ -80,7 +76,7 @@ predictionLogsRoute.get('/:id', authMiddleware, async (c) => {
         })
             .from(predictionLogs)
             .innerJoin(users, eq(predictionLogs.userId, users.id))
-            .where(and(eq(predictionLogs.id, logId), eq(predictionLogs.userId, user.id)))
+            .where(eq(predictionLogs.id, logId))
             .limit(1);
         if (log.length === 0) {
             return c.json({ error: 'Prediction log not found' }, 404);
@@ -179,26 +175,23 @@ predictionLogsRoute.delete('/:id', authMiddleware, async (c) => {
         return c.json({ error: 'Failed to delete prediction log' }, 500);
     }
 });
-// Get prediction statistics for the user
+// Get prediction statistics for all predictions
 predictionLogsRoute.get('/stats/summary', authMiddleware, async (c) => {
     try {
-        const user = c.get('user');
         const stats = await db
             .select({
             totalPredictions: predictionLogs.id,
             avgPrediction: predictionLogs.predict,
             mostCommonLevel: predictionLogs.predict,
         })
-            .from(predictionLogs)
-            .where(eq(predictionLogs.userId, user.id));
+            .from(predictionLogs);
         // Get prediction level distribution
         const levelDistribution = await db
             .select({
             level: predictionLogs.predict,
             count: predictionLogs.id,
         })
-            .from(predictionLogs)
-            .where(eq(predictionLogs.userId, user.id));
+            .from(predictionLogs);
         return c.json({
             totalPredictions: stats.length,
             levelDistribution: levelDistribution.reduce((acc, item) => {
@@ -210,6 +203,50 @@ predictionLogsRoute.get('/stats/summary', authMiddleware, async (c) => {
     catch (error) {
         console.error('Error fetching prediction stats:', error);
         return c.json({ error: 'Failed to fetch prediction statistics' }, 500);
+    }
+});
+// Get prediction count in the last 24 hours
+predictionLogsRoute.get('/stats/last-24h', authMiddleware, async (c) => {
+    try {
+        const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const result = await db
+            .select({ count: sql `count(*)` })
+            .from(predictionLogs)
+            .where(gte(predictionLogs.createdAt, twentyFourHoursAgo));
+        return c.json({
+            count: result[0]?.count || 0,
+            period: 'last_24_hours',
+            from: twentyFourHoursAgo.toISOString(),
+            to: new Date().toISOString(),
+        });
+    }
+    catch (error) {
+        console.error('Error fetching 24h prediction count:', error);
+        return c.json({ error: 'Failed to fetch 24h prediction count' }, 500);
+    }
+});
+// Get male and female patient counts
+predictionLogsRoute.get('/stats/patient-gender', authMiddleware, async (c) => {
+    try {
+        const genderStats = await db
+            .select({
+            gender: sql `CAST((${predictionLogs.inputs}->>'Sex') AS INTEGER)`,
+            count: sql `count(*)`,
+        })
+            .from(predictionLogs)
+            .groupBy(sql `CAST((${predictionLogs.inputs}->>'Sex') AS INTEGER)`);
+        // Process the results to get male/female counts
+        const maleCount = genderStats.find(stat => stat.gender === 1)?.count || 0;
+        const femaleCount = genderStats.find(stat => stat.gender === 0)?.count || 0;
+        return c.json({
+            male: maleCount,
+            female: femaleCount,
+            total: maleCount + femaleCount,
+        });
+    }
+    catch (error) {
+        console.error('Error fetching patient gender stats:', error);
+        return c.json({ error: 'Failed to fetch patient gender statistics' }, 500);
     }
 });
 export default predictionLogsRoute;
