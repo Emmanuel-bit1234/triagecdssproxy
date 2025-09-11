@@ -265,8 +265,8 @@ predictionLogsRoute.get('/stats/patient-gender', authMiddleware, async (c) => {
 
     // Process the results to get male/female counts
     // Male = 1, Female = 2 (based on the form implementation)
-    const maleCount = genderStats.find(stat => stat.gender === 1)?.count || 0;
-    const femaleCount = genderStats.find(stat => stat.gender === 2)?.count || 0;
+    const maleCount = Number(genderStats.find(stat => stat.gender === 1)?.count || 0);
+    const femaleCount = Number(genderStats.find(stat => stat.gender === 2)?.count || 0);
 
     return c.json({
       male: maleCount,
