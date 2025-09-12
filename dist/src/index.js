@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import auth from "./auth/routes.js";
 import predictionLogsRoute from "./routes/prediction-logs.js";
+import nurseReportsRoute from "./routes/nurse-reports.js";
 import { authMiddleware } from "./auth/middleware.js";
 import { db } from "./db/connection.js";
 import { predictionLogs } from "./db/schema.js";
@@ -21,6 +22,8 @@ app.get("/", (c) => {
 app.route("/auth", auth);
 // Prediction logs CRUD routes
 app.route("/prediction-logs", predictionLogsRoute);
+// Nurse reports routes
+app.route("/nurse-reports", nurseReportsRoute);
 // Protected predict endpoint with logging
 app.post("/predict", authMiddleware, async (context) => {
     try {
