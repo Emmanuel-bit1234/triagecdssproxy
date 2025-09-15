@@ -13,14 +13,14 @@ import type { PredictionResponse } from "./types/prediction.js";
 const app = new Hono<{ Variables: AuthVariables }>();
 
 // Enable CORS
-app.use('*', cors());
+app.use("*", cors());
 
 // Health check endpoint
 app.get("/", (c) => {
-  return c.json({ 
-    message: "Triage CDSS Proxy API", 
+  return c.json({
+    message: "Triage CDSS Proxy API",
     status: "running",
-    version: "1.0.0"
+    version: "1.0.0",
   });
 });
 
@@ -36,20 +36,20 @@ app.route("/nurse-reports", nurseReportsRoute);
 // Protected predict endpoint with logging
 app.post("/predict", authMiddleware, async (context) => {
   try {
-    const user = context.get('user');
+    const user = context.get("user");
     console.log(`Prediction request from user: ${user.email}`);
-    
+
     const body = await context.req.json();
-    const result = await fetch("https://1c890312931d.ngrok-free.app/model1", {
+    const result = await fetch("https://38d225b56cc4.ngrok-free.app/model1", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(body),
     });
-    
+
     const payloadResults = await result.json();
-    
+
     // Save prediction log to database
     try {
       await db.insert(predictionLogs).values({
@@ -66,7 +66,7 @@ app.post("/predict", authMiddleware, async (context) => {
       console.error("Error saving prediction log:", logError);
       // Don't fail the request if logging fails
     }
-    
+
     return context.json({
       status: "Success",
       data: payloadResults,
