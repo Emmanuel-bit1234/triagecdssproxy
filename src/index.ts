@@ -40,7 +40,7 @@ app.post("/predict", authMiddleware, async (context) => {
     console.log(`Prediction request from user: ${user.email}`);
 
     const body = await context.req.json();
-    const result = await fetch("https://38d225b56cc4.ngrok-free.app/model1", {
+    const result = await fetch("https://c7f4c7438149.ngrok-free.app/model1", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
