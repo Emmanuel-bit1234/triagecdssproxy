@@ -163,8 +163,8 @@ nurseReportsRoute.get('/:nurseId', authMiddleware, async (c) => {
         const moderatePatients = levelDist[3] || 0;
         const lowUrgencyPatients = (levelDist[4] || 0) + (levelDist[5] || 0);
         // Gender distribution
-        const maleCount = Number(genderStats.find(stat => stat.gender === 1)?.count || 0);
-        const femaleCount = Number(genderStats.find(stat => stat.gender === 2)?.count || 0);
+        const femaleCount = Number(genderStats.find(stat => stat.gender === 1)?.count || 0);
+        const maleCount = Number(genderStats.find(stat => stat.gender === 2)?.count || 0);
         // Age groups
         let pediatric = 0, adult = 0, elderly = 0;
         ageStats.forEach(stat => {
