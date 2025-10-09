@@ -4,6 +4,7 @@ import { cors } from "hono/cors";
 import auth from "./auth/routes.js";
 import predictionLogsRoute from "./routes/prediction-logs.js";
 import nurseReportsRoute from "./routes/nurse-reports.js";
+import patientsRoute from "./routes/patients.js";
 import { authMiddleware } from "./auth/middleware.js";
 import { db } from "./db/connection.js";
 import { predictionLogs } from "./db/schema.js";
@@ -32,6 +33,9 @@ app.route("/prediction-logs", predictionLogsRoute);
 
 // Nurse reports routes
 app.route("/nurse-reports", nurseReportsRoute);
+
+// Patient management routes
+app.route("/patients", patientsRoute);
 
 // Protected predict endpoint with logging
 app.post("/predict", authMiddleware, async (context) => {

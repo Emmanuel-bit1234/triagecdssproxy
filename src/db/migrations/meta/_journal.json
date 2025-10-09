@@ -50,6 +50,20 @@
       "when": 1760006782083,
       "tag": "0006_plain_rhodey",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1760012278923,
+      "tag": "0007_adorable_storm",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1760012839004,
+      "tag": "0008_robust_namor",
+      "breakpoints": true
     }
   ]
 }

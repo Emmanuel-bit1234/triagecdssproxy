@@ -1,0 +1,103 @@
+export interface Patient {
+  id: number;
+  patientNumber: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth: Date;
+  gender: 'male' | 'female' | 'other';
+  phoneNumber: string | null;
+  email: string | null;
+  address: string | null;
+  emergencyContact: {
+    name: string;
+    relationship: string;
+    phoneNumber: string;
+  } | null;
+  medicalHistory: string[] | null;
+  allergies: string[] | null;
+  medications: string[] | null;
+  insuranceInfo: {
+    provider: string;
+    policyNumber: string;
+    groupNumber?: string;
+  } | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CreatePatientRequest {
+  patientNumber: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string; // ISO date string
+  gender: 'male' | 'female' | 'other';
+  phoneNumber?: string;
+  email?: string;
+  address?: string;
+  emergencyContact?: {
+    name: string;
+    relationship: string;
+    phoneNumber: string;
+  };
+  medicalHistory?: string[];
+  allergies?: string[];
+  medications?: string[];
+  insuranceInfo?: {
+    provider: string;
+    policyNumber: string;
+    groupNumber?: string;
+  };
+}
+
+export interface UpdatePatientRequest {
+  firstName?: string;
+  lastName?: string;
+  dateOfBirth?: string; // ISO date string
+  gender?: 'male' | 'female' | 'other';
+  phoneNumber?: string;
+  email?: string;
+  address?: string;
+  emergencyContact?: {
+    name: string;
+    relationship: string;
+    phoneNumber: string;
+  };
+  medicalHistory?: string[];
+  allergies?: string[];
+  medications?: string[];
+  insuranceInfo?: {
+    provider: string;
+    policyNumber: string;
+    groupNumber?: string;
+  };
+}
+
+export interface PatientSearchParams {
+  query?: string; // Search in name, patient number, phone, email
+  gender?: 'male' | 'female' | 'other';
+  ageMin?: number;
+  ageMax?: number;
+  hasAllergies?: boolean;
+  hasMedications?: boolean;
+}
+
+export interface PatientListResponse {
+  patients: Patient[];
+}
+
+export interface PatientStats {
+  totalPatients: number;
+  genderDistribution: {
+    male: number;
+    female: number;
+    other: number;
+  };
+  ageGroups: {
+    pediatric: number; // 0-17
+    adult: number; // 18-64
+    elderly: number; // 65+
+  };
+  commonAllergies: Array<{ allergy: string; count: number }>;
+  commonMedications: Array<{ medication: string; count: number }>;
+  recentRegistrations: number; // Last 30 days
+}
