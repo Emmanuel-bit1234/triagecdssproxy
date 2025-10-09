@@ -4,11 +4,9 @@ import { cors } from "hono/cors";
 import auth from "./auth/routes.js";
 import predictionLogsRoute from "./routes/prediction-logs.js";
 import nurseReportsRoute from "./routes/nurse-reports.js";
-import patientsRoute from "./routes/patients.js";
 import { authMiddleware } from "./auth/middleware.js";
 import { db } from "./db/connection.js";
-import { predictionLogs, patients } from "./db/schema.js";
-import { eq } from "drizzle-orm";
+import { predictionLogs } from "./db/schema.js";
 const app = new Hono();
 // Enable CORS
 app.use("*", cors());
@@ -26,8 +24,6 @@ app.route("/auth", auth);
 app.route("/prediction-logs", predictionLogsRoute);
 // Nurse reports routes
 app.route("/nurse-reports", nurseReportsRoute);
-// Patients routes
-app.route("/patients", patientsRoute);
 // Protected predict endpoint with logging
 app.post("/predict", authMiddleware, async (context) => {
     try {
@@ -42,23 +38,10 @@ app.post("/predict", authMiddleware, async (context) => {
             body: JSON.stringify(body),
         });
         const payloadResults = await result.json();
-        // Find patient by patient number
-        let patientId = null;
-        if (body.patientNumber) {
-            const existingPatient = await db
-                .select()
-                .from(patients)
-                .where(eq(patients.patientNumber, body.patientNumber))
-                .limit(1);
-            if (existingPatient.length > 0) {
-                patientId = existingPatient[0].id;
-            }
-        }
         // Save prediction log to database
         try {
             await db.insert(predictionLogs).values({
                 userId: user.id,
-                patientId,
                 patientNumber: body.patientNumber,
                 inputs: payloadResults.inputs,
                 predict: payloadResults.Predict,

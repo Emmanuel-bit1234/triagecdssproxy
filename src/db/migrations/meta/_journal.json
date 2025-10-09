@@ -43,6 +43,13 @@
       "when": 1760003756704,
       "tag": "0005_curved_leo",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1760006782083,
+      "tag": "0006_plain_rhodey",
+      "breakpoints": true
     }
   ]
 }
