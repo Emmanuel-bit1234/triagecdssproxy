@@ -8,6 +8,7 @@ Your API now automatically logs all prediction requests and provides full CRUD o
 
 **prediction_logs table:**
 - `id` - Primary key (serial)
+
 - `user_id` - Foreign key to users table
 - `inputs` - JSONB field storing all input parameters
 - `predict` - Integer prediction result

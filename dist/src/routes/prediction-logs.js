@@ -7,9 +7,6 @@ const predictionLogsRoute = new Hono();
 // Get all prediction logs (any logged-in user can view all predictions)
 predictionLogsRoute.get('/', authMiddleware, async (c) => {
     try {
-        const page = parseInt(c.req.query('page') || '1');
-        const limit = parseInt(c.req.query('limit') || '10');
-        const offset = (page - 1) * limit;
         const logs = await db
             .select({
             id: predictionLogs.id,
@@ -29,21 +26,8 @@ predictionLogsRoute.get('/', authMiddleware, async (c) => {
         })
             .from(predictionLogs)
             .innerJoin(users, eq(predictionLogs.userId, users.id))
-            .orderBy(desc(predictionLogs.createdAt))
-            .limit(limit)
-            .offset(offset);
-        const totalCount = await db
-            .select({ count: predictionLogs.id })
-            .from(predictionLogs);
-        return c.json({
-            logs,
-            pagination: {
-                page,
-                limit,
-                total: totalCount.length,
-                totalPages: Math.ceil(totalCount.length / limit),
-            },
-        });
+            .orderBy(desc(predictionLogs.createdAt));
+        return c.json({ logs });
     }
     catch (error) {
         console.error('Error fetching prediction logs:', error);

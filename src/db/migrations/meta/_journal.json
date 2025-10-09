@@ -36,6 +36,13 @@
       "when": 1757445811311,
       "tag": "0004_supreme_annihilus",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1760003756704,
+      "tag": "0005_curved_leo",
+      "breakpoints": true
     }
   ]
 }
