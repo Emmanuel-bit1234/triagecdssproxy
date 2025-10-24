@@ -8,6 +8,7 @@ const patientsRoute = new Hono();
 patientsRoute.post('/', authMiddleware, async (c) => {
     try {
         const body = await c.req.json();
+        console.log('CREATE PATIENT - Request body:', JSON.stringify(body, null, 2));
         // Validate required fields
         if (!body.patientNumber || !body.firstName || !body.lastName || !body.dateOfBirth || !body.gender) {
             return c.json({
@@ -113,6 +114,7 @@ patientsRoute.put('/:id', authMiddleware, async (c) => {
     try {
         const id = parseInt(c.req.param('id'));
         const body = await c.req.json();
+        console.log('UPDATE PATIENT - ID:', id, 'Request body:', JSON.stringify(body, null, 2));
         if (isNaN(id)) {
             return c.json({ error: 'Invalid patient ID' }, 400);
         }
@@ -133,6 +135,7 @@ patientsRoute.put('/:id', authMiddleware, async (c) => {
         }
         // Prevent patient number updates (patient number should not be changed)
         if ('patientNumber' in body) {
+            console.log('UPDATE PATIENT - Attempted to update patientNumber:', body.patientNumber);
             return c.json({
                 error: 'Patient number cannot be updated. It is a unique identifier.'
             }, 400);
@@ -147,10 +150,11 @@ patientsRoute.put('/:id', authMiddleware, async (c) => {
                 }, 400);
             }
         }
-        // Prepare update data
+        // Prepare update data - explicitly exclude patientNumber
         const updateData = {
             updatedAt: new Date(),
         };
+        // Explicitly map only allowed fields to prevent any accidental inclusion of patientNumber
         if (body.firstName)
             updateData.firstName = body.firstName;
         if (body.lastName)
@@ -175,6 +179,11 @@ patientsRoute.put('/:id', authMiddleware, async (c) => {
             updateData.medications = body.medications;
         if (body.insuranceInfo !== undefined)
             updateData.insuranceInfo = body.insuranceInfo;
+        // Double-check: ensure patientNumber is never in updateData
+        if ('patientNumber' in updateData) {
+            console.error('CRITICAL: patientNumber found in updateData!', updateData);
+            delete updateData.patientNumber;
+        }
         const updatedPatient = await db
             .update(patients)
             .set(updateData)
@@ -187,6 +196,12 @@ patientsRoute.put('/:id', authMiddleware, async (c) => {
     }
     catch (error) {
         console.error('Error updating patient:', error);
+        // Check if it's a unique constraint violation
+        if (error instanceof Error && error.message.includes('duplicate key value')) {
+            return c.json({
+                error: 'Patient number already exists'
+            }, 409);
+        }
         return c.json({ error: 'Failed to update patient' }, 500);
     }
 });
