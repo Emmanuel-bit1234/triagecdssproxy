@@ -14,14 +14,14 @@ async function generateNextPatientNumber() {
             .orderBy(sql `CAST(SUBSTRING(${patients.patientNumber} FROM 2) AS INTEGER) DESC`)
             .limit(1);
         if (result.length === 0) {
-            // No existing patients, start with P000001
-            return 'P000001';
+            // No existing patients, start with P00000001
+            return 'P00000001';
         }
         // Extract the number part and increment
         const lastNumber = parseInt(result[0].patientNumber.substring(1));
         const nextNumber = lastNumber + 1;
-        // Format with leading zeros (6 digits total)
-        return `P${nextNumber.toString().padStart(6, '0')}`;
+        // Format with leading zeros (8 digits total)
+        return `P${nextNumber.toString().padStart(8, '0')}`;
     }
     catch (error) {
         console.error('Error generating patient number:', error);

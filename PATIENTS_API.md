@@ -52,7 +52,7 @@ Create a new patient record.
 - `gender`: Must be "male", "female", or "other"
 
 **Optional Fields:**
-- `patientNumber`: Custom patient identifier (if not provided, will be auto-generated as P000001, P000002, etc.)
+- `patientNumber`: Custom patient identifier (if not provided, will be auto-generated as P00000001, P00000002, etc.)
 - `phoneNumber`: Contact phone number
 - `email`: Email address
 - `address`: Physical address
@@ -68,7 +68,7 @@ Create a new patient record.
   "message": "Patient created successfully",
   "patient": {
     "id": 1,
-    "patientNumber": "P000001",
+    "patientNumber": "P00000001",
     "firstName": "John",
     "lastName": "Doe",
     "dateOfBirth": "1990-05-15T00:00:00.000Z",
