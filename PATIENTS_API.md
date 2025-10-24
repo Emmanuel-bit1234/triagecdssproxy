@@ -409,11 +409,6 @@ interface InsuranceInfo {
 }
 ```
 
-```json
-{
-  "error": "Patient number cannot be updated. It is a unique identifier."
-}
-```
 
 ### 404 Not Found
 ```json
