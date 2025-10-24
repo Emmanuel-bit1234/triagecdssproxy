@@ -26,7 +26,7 @@ export interface Patient {
 }
 
 export interface CreatePatientRequest {
-  patientNumber: string;
+  patientNumber?: string; // Now optional - will be auto-generated if not provided
   firstName: string;
   lastName: string;
   dateOfBirth: string; // ISO date string

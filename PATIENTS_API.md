@@ -23,7 +23,6 @@ Create a new patient record.
 **Request Body:**
 ```json
 {
-  "patientNumber": "P001234",
   "firstName": "John",
   "lastName": "Doe",
   "dateOfBirth": "1990-05-15",
@@ -47,13 +46,13 @@ Create a new patient record.
 ```
 
 **Required Fields:**
-- `patientNumber`: Unique patient identifier
 - `firstName`: Patient's first name
 - `lastName`: Patient's last name
 - `dateOfBirth`: Date of birth in ISO format (YYYY-MM-DD)
 - `gender`: Must be "male", "female", or "other"
 
 **Optional Fields:**
+- `patientNumber`: Custom patient identifier (if not provided, will be auto-generated as P000001, P000002, etc.)
 - `phoneNumber`: Contact phone number
 - `email`: Email address
 - `address`: Physical address
@@ -69,7 +68,7 @@ Create a new patient record.
   "message": "Patient created successfully",
   "patient": {
     "id": 1,
-    "patientNumber": "P001234",
+    "patientNumber": "P000001",
     "firstName": "John",
     "lastName": "Doe",
     "dateOfBirth": "1990-05-15T00:00:00.000Z",
@@ -439,7 +438,6 @@ curl -X POST \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
   -d '{
-    "patientNumber": "P001234",
     "firstName": "John",
     "lastName": "Doe",
     "dateOfBirth": "1990-05-15",

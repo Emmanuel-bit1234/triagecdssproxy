@@ -12,6 +12,36 @@ import type {
   PatientStats 
 } from '../types/patient.js';
 
+// Helper function to generate next patient number
+async function generateNextPatientNumber(): Promise<string> {
+  try {
+    // Get the highest existing patient number
+    const result = await db
+      .select({ patientNumber: patients.patientNumber })
+      .from(patients)
+      .where(sql`${patients.patientNumber} ~ '^P[0-9]+$'`) // Only numbers starting with P
+      .orderBy(sql`CAST(SUBSTRING(${patients.patientNumber} FROM 2) AS INTEGER) DESC`)
+      .limit(1);
+
+    if (result.length === 0) {
+      // No existing patients, start with P000001
+      return 'P000001';
+    }
+
+    // Extract the number part and increment
+    const lastNumber = parseInt(result[0].patientNumber.substring(1));
+    const nextNumber = lastNumber + 1;
+    
+    // Format with leading zeros (6 digits total)
+    return `P${nextNumber.toString().padStart(6, '0')}`;
+  } catch (error) {
+    console.error('Error generating patient number:', error);
+    // Fallback: use timestamp-based number
+    const timestamp = Date.now().toString().slice(-6);
+    return `P${timestamp}`;
+  }
+}
+
 const patientsRoute = new Hono<{ Variables: AuthVariables }>();
 
 // Create a new patient
@@ -20,12 +50,16 @@ patientsRoute.post('/', authMiddleware, async (c) => {
     const body = await c.req.json() as CreatePatientRequest;
     console.log('CREATE PATIENT - Request body:', JSON.stringify(body, null, 2));
 
-    // Validate required fields
-    if (!body.patientNumber || !body.firstName || !body.lastName || !body.dateOfBirth || !body.gender) {
+    // Validate required fields (patientNumber is now optional)
+    if (!body.firstName || !body.lastName || !body.dateOfBirth || !body.gender) {
       return c.json({ 
-        error: 'Missing required fields: patientNumber, firstName, lastName, dateOfBirth, gender' 
+        error: 'Missing required fields: firstName, lastName, dateOfBirth, gender' 
       }, 400);
     }
+
+    // Generate patient number if not provided
+    const patientNumber = body.patientNumber || await generateNextPatientNumber();
+    console.log('Generated patient number:', patientNumber);
 
     // Validate gender
     if (!['male', 'female', 'other'].includes(body.gender)) {
@@ -42,24 +76,26 @@ patientsRoute.post('/', authMiddleware, async (c) => {
       }, 400);
     }
 
-    // Check if patient number already exists
-    const existingPatient = await db
-      .select()
-      .from(patients)
-      .where(eq(patients.patientNumber, body.patientNumber))
-      .limit(1);
+    // Check if custom patient number already exists (only if provided)
+    if (body.patientNumber) {
+      const existingPatient = await db
+        .select()
+        .from(patients)
+        .where(eq(patients.patientNumber, body.patientNumber))
+        .limit(1);
 
-    if (existingPatient.length > 0) {
-      return c.json({ 
-        error: 'Patient number already exists' 
-      }, 409);
+      if (existingPatient.length > 0) {
+        return c.json({ 
+          error: 'Patient number already exists' 
+        }, 409);
+      }
     }
 
     // Create patient
     const newPatient = await db
       .insert(patients)
       .values({
-        patientNumber: body.patientNumber,
+        patientNumber: patientNumber,
         firstName: body.firstName,
         lastName: body.lastName,
         dateOfBirth: dateOfBirth,
