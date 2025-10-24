@@ -160,6 +160,13 @@ patientsRoute.put('/:id', authMiddleware, async (c) => {
       }, 400);
     }
 
+    // Prevent patient number updates (patient number should not be changed)
+    if ('patientNumber' in body) {
+      return c.json({ 
+        error: 'Patient number cannot be updated. It is a unique identifier.' 
+      }, 400);
+    }
+
     // Validate date of birth if provided
     let dateOfBirth = undefined;
     if (body.dateOfBirth) {
