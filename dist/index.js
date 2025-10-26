@@ -19,6 +19,7 @@ app.get("/", (c) => {
         version: "1.0.0",
     });
 });
+
 // Authentication routes
 app.route("/auth", auth);
 // Prediction logs CRUD routes

@@ -54,3 +54,9 @@ export interface PredictionLogWithUser {
     name: string;
   };
 }
+
+export interface PatientVisitsResponse {
+  patientNumber: string;
+  visits: PredictionLogWithUser[];
+  totalVisits: number;
+}
