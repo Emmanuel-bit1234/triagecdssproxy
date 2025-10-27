@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { db } from '../db/connection.js';
-import { predictionLogs, users } from '../db/schema.js';
+import { predictionLogs, users, patients } from '../db/schema.js';
 import { authMiddleware } from '../auth/middleware.js';
 import { eq, desc, and, gte, sql } from 'drizzle-orm';
 import type { AuthVariables } from '../types/auth.js';
@@ -277,21 +277,34 @@ predictionLogsRoute.get('/stats/patient-gender', authMiddleware, async (c) => {
   try {
     const genderStats = await db
       .select({
-        gender: sql<number>`CAST((${predictionLogs.inputs}->>'Sex') AS INTEGER)`,
-        count: sql<number>`count(*)`,
+        gender: patients.gender,
+        count: sql<number>`count(DISTINCT ${predictionLogs.patientNumber})`,
       })
       .from(predictionLogs)
-      .groupBy(sql`CAST((${predictionLogs.inputs}->>'Sex') AS INTEGER)`);
+      .leftJoin(patients, eq(predictionLogs.patientNumber, patients.patientNumber))
+      .groupBy(patients.gender);
 
     // Process the results to get male/female counts
-    // Female = 1, Male = 2 (based on the form implementation)
-    const femaleCount = Number(genderStats.find(stat => stat.gender === 1)?.count || 0);
-    const maleCount = Number(genderStats.find(stat => stat.gender === 2)?.count || 0);
+    let maleCount = 0;
+    let femaleCount = 0;
+    let otherCount = 0;
+
+    genderStats.forEach(stat => {
+      const count = Number(stat.count || 0);
+      if (stat.gender === 'male') {
+        maleCount = count;
+      } else if (stat.gender === 'female') {
+        femaleCount = count;
+      } else if (stat.gender === 'other') {
+        otherCount = count;
+      }
+    });
 
     return c.json({
       male: maleCount,
       female: femaleCount,
-      total: maleCount + femaleCount,
+      other: otherCount,
+      total: maleCount + femaleCount + otherCount,
     });
   } catch (error) {
     console.error('Error fetching patient gender stats:', error);
