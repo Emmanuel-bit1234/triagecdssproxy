@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { db } from '../db/connection.js';
-import { predictionLogs, users, patients } from '../db/schema.js';
+import { predictionLogs, users } from '../db/schema.js';
 import { authMiddleware } from '../auth/middleware.js';
 import { eq, desc, and, gte, sql } from 'drizzle-orm';
 import type { AuthVariables } from '../types/auth.js';
@@ -36,44 +36,6 @@ predictionLogsRoute.get('/', authMiddleware, async (c) => {
   } catch (error) {
     console.error('Error fetching prediction logs:', error);
     return c.json({ error: 'Failed to fetch prediction logs' }, 500);
-  }
-});
-
-// Get all visits/triage for a specific patient
-predictionLogsRoute.get('/patient/:patientNumber', authMiddleware, async (c) => {
-  try {
-    const patientNumber = c.req.param('patientNumber');
-
-    const visits = await db
-      .select({
-        id: predictionLogs.id,
-        userId: predictionLogs.userId,
-        patientNumber: predictionLogs.patientNumber,
-        inputs: predictionLogs.inputs,
-        predict: predictionLogs.predict,
-        ktasExplained: predictionLogs.ktasExplained,
-        probs: predictionLogs.probs,
-        model: predictionLogs.model,
-        createdAt: predictionLogs.createdAt,
-        user: {
-          id: users.id,
-          email: users.email,
-          name: users.name,
-        },
-      })
-      .from(predictionLogs)
-      .innerJoin(users, eq(predictionLogs.userId, users.id))
-      .where(eq(predictionLogs.patientNumber, patientNumber))
-      .orderBy(desc(predictionLogs.createdAt));
-
-    return c.json({ 
-      patientNumber,
-      visits: visits,
-      totalVisits: visits.length
-    });
-  } catch (error) {
-    console.error('Error fetching patient visits:', error);
-    return c.json({ error: 'Failed to fetch patient visits' }, 500);
   }
 });
 
@@ -277,34 +239,21 @@ predictionLogsRoute.get('/stats/patient-gender', authMiddleware, async (c) => {
   try {
     const genderStats = await db
       .select({
-        gender: patients.gender,
-        count: sql<number>`count(DISTINCT ${predictionLogs.patientNumber})`,
+        gender: sql<number>`CAST((${predictionLogs.inputs}->>'Sex') AS INTEGER)`,
+        count: sql<number>`count(*)`,
       })
       .from(predictionLogs)
-      .leftJoin(patients, eq(predictionLogs.patientNumber, patients.patientNumber))
-      .groupBy(patients.gender);
+      .groupBy(sql`CAST((${predictionLogs.inputs}->>'Sex') AS INTEGER)`);
 
     // Process the results to get male/female counts
-    let maleCount = 0;
-    let femaleCount = 0;
-    let otherCount = 0;
-
-    genderStats.forEach(stat => {
-      const count = Number(stat.count || 0);
-      if (stat.gender === 'male') {
-        maleCount = count;
-      } else if (stat.gender === 'female') {
-        femaleCount = count;
-      } else if (stat.gender === 'other') {
-        otherCount = count;
-      }
-    });
+    // Female = 1, Male = 2 (based on the form implementation)
+    const femaleCount = Number(genderStats.find(stat => stat.gender === 1)?.count || 0);
+    const maleCount = Number(genderStats.find(stat => stat.gender === 2)?.count || 0);
 
     return c.json({
       male: maleCount,
       female: femaleCount,
-      other: otherCount,
-      total: maleCount + femaleCount + otherCount,
+      total: maleCount + femaleCount,
     });
   } catch (error) {
     console.error('Error fetching patient gender stats:', error);

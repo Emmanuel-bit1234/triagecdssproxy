@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { db } from '../db/connection.js';
-import { predictionLogs, users, patients } from '../db/schema.js';
+import { predictionLogs, users } from '../db/schema.js';
 import { authMiddleware } from '../auth/middleware.js';
 import { eq, desc, and, gte, lte, sql, count, avg, max, min } from 'drizzle-orm';
 import type { AuthVariables } from '../types/auth.js';
@@ -160,24 +160,22 @@ nurseReportsRoute.get('/:nurseId', authMiddleware, async (c) => {
     // Get gender distribution
     const genderStats = await db
       .select({
-        gender: patients.gender,
+        gender: sql<number>`CAST((${predictionLogs.inputs}->>'Sex') AS INTEGER)`,
         count: count(predictionLogs.id),
       })
       .from(predictionLogs)
-      .leftJoin(patients, eq(predictionLogs.patientNumber, patients.patientNumber))
       .where(dateFilter)
-      .groupBy(patients.gender);
+      .groupBy(sql`CAST((${predictionLogs.inputs}->>'Sex') AS INTEGER)`);
 
-    // Get age distribution (using patients table)
+    // Get age distribution
     const ageStats = await db
       .select({
-        dateOfBirth: patients.dateOfBirth,
+        age: sql<number>`CAST((${predictionLogs.inputs}->>'Age') AS INTEGER)`,
         count: count(predictionLogs.id),
       })
       .from(predictionLogs)
-      .leftJoin(patients, eq(predictionLogs.patientNumber, patients.patientNumber))
       .where(dateFilter)
-      .groupBy(patients.dateOfBirth);
+      .groupBy(sql`CAST((${predictionLogs.inputs}->>'Age') AS INTEGER)`);
 
     // Get arrival mode distribution
     const arrivalModeStats = await db
@@ -262,24 +260,16 @@ nurseReportsRoute.get('/:nurseId', authMiddleware, async (c) => {
     const lowUrgencyPatients = (levelDist[4] || 0) + (levelDist[5] || 0);
 
     // Gender distribution
-    let maleCount = 0, femaleCount = 0, otherCount = 0;
-    genderStats.forEach(stat => {
-      const count = Number(stat.count || 0);
-      if (stat.gender === 'male') maleCount = count;
-      else if (stat.gender === 'female') femaleCount = count;
-      else if (stat.gender === 'other') otherCount = count;
-    });
+    const femaleCount = Number(genderStats.find(stat => stat.gender === 1)?.count || 0);
+    const maleCount = Number(genderStats.find(stat => stat.gender === 2)?.count || 0);
 
     // Age groups
     let pediatric = 0, adult = 0, elderly = 0;
-    const now = new Date();
     ageStats.forEach(stat => {
-      if (stat.dateOfBirth) {
-        const age = now.getFullYear() - stat.dateOfBirth.getFullYear();
-        if (age <= 17) pediatric += Number(stat.count);
-        else if (age <= 64) adult += Number(stat.count);
-        else elderly += Number(stat.count);
-      }
+      const age = Number(stat.age);
+      if (age <= 17) pediatric += Number(stat.count);
+      else if (age <= 64) adult += Number(stat.count);
+      else elderly += Number(stat.count);
     });
 
     // Arrival mode distribution
