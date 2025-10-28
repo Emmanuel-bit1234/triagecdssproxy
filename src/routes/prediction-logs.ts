@@ -39,6 +39,44 @@ predictionLogsRoute.get('/', authMiddleware, async (c) => {
   }
 });
 
+// Get all visits/triage for a specific patient by patient number
+predictionLogsRoute.get('/patient/:patientNumber', authMiddleware, async (c) => {
+  try {
+    const patientNumber = c.req.param('patientNumber');
+
+    const visits = await db
+      .select({
+        id: predictionLogs.id,
+        userId: predictionLogs.userId,
+        patientNumber: predictionLogs.patientNumber,
+        inputs: predictionLogs.inputs,
+        predict: predictionLogs.predict,
+        ktasExplained: predictionLogs.ktasExplained,
+        probs: predictionLogs.probs,
+        model: predictionLogs.model,
+        createdAt: predictionLogs.createdAt,
+        user: {
+          id: users.id,
+          email: users.email,
+          name: users.name,
+        },
+      })
+      .from(predictionLogs)
+      .innerJoin(users, eq(predictionLogs.userId, users.id))
+      .where(eq(predictionLogs.patientNumber, patientNumber))
+      .orderBy(desc(predictionLogs.createdAt));
+
+    return c.json({ 
+      patientNumber,
+      totalVisits: visits.length,
+      visits: visits
+    });
+  } catch (error) {
+    console.error('Error fetching patient visits:', error);
+    return c.json({ error: 'Failed to fetch patient visits' }, 500);
+  }
+});
+
 // Get a specific prediction log by ID (any logged-in user can view any prediction)
 predictionLogsRoute.get('/:id', authMiddleware, async (c) => {
   try {
