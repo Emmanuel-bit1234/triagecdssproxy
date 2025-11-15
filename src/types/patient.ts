@@ -1,3 +1,14 @@
+export interface PatientNote {
+  id: string;
+  content: string;
+  author: {
+    id: number;
+    name: string;
+    email: string;
+  };
+  createdAt: string; // ISO date string
+}
+
 export interface Patient {
   id: number;
   patientNumber: string;
@@ -21,6 +32,7 @@ export interface Patient {
     policyNumber: string;
     groupNumber?: string;
   } | null;
+  notes: PatientNote[] | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -47,6 +59,7 @@ export interface CreatePatientRequest {
     policyNumber: string;
     groupNumber?: string;
   };
+  notes?: PatientNote[]; // Optional notes when creating
 }
 
 export interface UpdatePatientRequest {
@@ -70,6 +83,8 @@ export interface UpdatePatientRequest {
     policyNumber: string;
     groupNumber?: string;
   };
+  notes?: PatientNote[]; // Can update entire notes array or add new note
+  newNote?: string; // Convenience field: just provide note content to append
 }
 
 export interface PatientSearchParams {

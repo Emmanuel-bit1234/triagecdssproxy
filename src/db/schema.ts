@@ -32,6 +32,16 @@ export const patients = pgTable('patients', {
     policyNumber: string;
     groupNumber?: string;
   } | null>(),
+  notes: jsonb('notes').$type<Array<{
+    id: string;
+    content: string;
+    author: {
+      id: number;
+      name: string;
+      email: string;
+    };
+    createdAt: string; // ISO date string
+  }> | null>(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

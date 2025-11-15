@@ -9,7 +9,8 @@ import type {
   UpdatePatientRequest, 
   PatientSearchParams, 
   PatientListResponse,
-  PatientStats 
+  PatientStats,
+  PatientNote
 } from '../types/patient.js';
 
 // Helper function to generate next patient number
@@ -47,6 +48,7 @@ const patientsRoute = new Hono<{ Variables: AuthVariables }>();
 // Create a new patient
 patientsRoute.post('/', authMiddleware, async (c) => {
   try {
+    const user = c.get('user');
     const body = await c.req.json() as CreatePatientRequest;
     console.log('CREATE PATIENT - Request body:', JSON.stringify(body, null, 2));
 
@@ -91,6 +93,32 @@ patientsRoute.post('/', authMiddleware, async (c) => {
       }
     }
 
+    // Process notes: if provided, ensure they have proper structure with author info
+    let processedNotes: PatientNote[] | null = null;
+    if (body.notes && body.notes.length > 0) {
+      processedNotes = body.notes.map(note => {
+        // If note already has author info, use it; otherwise add current user as author
+        if (note.author) {
+          return {
+            ...note,
+            id: note.id || `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+            createdAt: note.createdAt || new Date().toISOString(),
+          };
+        } else {
+          return {
+            id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+            content: note.content,
+            author: {
+              id: user.id,
+              name: user.name,
+              email: user.email,
+            },
+            createdAt: new Date().toISOString(),
+          };
+        }
+      });
+    }
+
     // Create patient
     const newPatient = await db
       .insert(patients)
@@ -108,6 +136,7 @@ patientsRoute.post('/', authMiddleware, async (c) => {
         allergies: body.allergies,
         medications: body.medications,
         insuranceInfo: body.insuranceInfo,
+        notes: processedNotes,
       })
       .returning();
 
@@ -172,6 +201,7 @@ patientsRoute.get('/number/:patientNumber', authMiddleware, async (c) => {
 // Update patient
 patientsRoute.put('/:id', authMiddleware, async (c) => {
   try {
+    const user = c.get('user');
     const id = parseInt(c.req.param('id'));
     const body = await c.req.json() as UpdatePatientRequest;
     console.log('UPDATE PATIENT - ID:', id, 'Request body:', JSON.stringify(body, null, 2));
@@ -210,6 +240,53 @@ patientsRoute.put('/:id', authMiddleware, async (c) => {
       }
     }
 
+    // Process notes
+    let processedNotes: PatientNote[] | null | undefined = undefined;
+    
+    // If newNote is provided, append it to existing notes
+    if (body.newNote) {
+      const currentNotes = existingPatient[0].notes || [];
+      const newNote: PatientNote = {
+        id: `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+        content: body.newNote,
+        author: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+        },
+        createdAt: new Date().toISOString(),
+      };
+      processedNotes = [...currentNotes, newNote];
+    }
+    // If notes array is provided, use it (replaces existing notes)
+    else if (body.notes !== undefined) {
+      if (body.notes === null || body.notes.length === 0) {
+        processedNotes = null;
+      } else {
+        // Ensure all notes have proper structure
+        processedNotes = body.notes.map(note => {
+          if (note.author) {
+            return {
+              ...note,
+              id: note.id || `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+              createdAt: note.createdAt || new Date().toISOString(),
+            };
+          } else {
+            return {
+              id: note.id || `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
+              content: note.content,
+              author: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+              },
+              createdAt: note.createdAt || new Date().toISOString(),
+            };
+          }
+        });
+      }
+    }
+
     // Prepare update data
     const updateData: any = {
       updatedAt: new Date(),
@@ -226,6 +303,7 @@ patientsRoute.put('/:id', authMiddleware, async (c) => {
     if (body.allergies !== undefined) updateData.allergies = body.allergies;
     if (body.medications !== undefined) updateData.medications = body.medications;
     if (body.insuranceInfo !== undefined) updateData.insuranceInfo = body.insuranceInfo;
+    if (processedNotes !== undefined) updateData.notes = processedNotes;
 
 
     const updatedPatient = await db
