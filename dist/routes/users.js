@@ -4,6 +4,50 @@ import { users } from '../db/schema.js';
 import { authMiddleware, adminMiddleware } from '../auth/middleware.js';
 import { eq, and, or, like, count, sql } from 'drizzle-orm';
 const usersRoute = new Hono();
+// Search users (must be before /:id route)
+usersRoute.get('/search', authMiddleware, async (c) => {
+    try {
+        const query = c.req.query('query');
+        const role = c.req.query('role');
+        const limit = parseInt(c.req.query('limit') || '20');
+        if (!query) {
+            return c.json({ error: 'Query parameter is required' }, 400);
+        }
+        const searchTerm = `%${query}%`;
+        const conditions = [
+            or(like(users.name, searchTerm), like(users.email, searchTerm)),
+        ];
+        if (role) {
+            conditions.push(eq(users.role, role));
+        }
+        const whereClause = and(...conditions);
+        // Get total count
+        const totalResult = await db
+            .select({ count: count() })
+            .from(users)
+            .where(whereClause);
+        const total = Number(totalResult[0]?.count || 0);
+        // Get users
+        const usersList = await db
+            .select({
+            id: users.id,
+            email: users.email,
+            name: users.name,
+            role: users.role,
+        })
+            .from(users)
+            .where(whereClause)
+            .limit(limit);
+        return c.json({
+            users: usersList,
+            total,
+        });
+    }
+    catch (error) {
+        console.error('Error searching users:', error);
+        return c.json({ error: 'Failed to search users' }, 500);
+    }
+});
 // Get all users
 usersRoute.get('/', authMiddleware, async (c) => {
     try {
@@ -250,50 +294,6 @@ usersRoute.delete('/:id', authMiddleware, adminMiddleware, async (c) => {
     catch (error) {
         console.error('Error deleting user:', error);
         return c.json({ error: 'Failed to delete user' }, 500);
-    }
-});
-// Search users
-usersRoute.get('/search', authMiddleware, async (c) => {
-    try {
-        const query = c.req.query('query');
-        const role = c.req.query('role');
-        const limit = parseInt(c.req.query('limit') || '20');
-        if (!query) {
-            return c.json({ error: 'Query parameter is required' }, 400);
-        }
-        const searchTerm = `%${query}%`;
-        const conditions = [
-            or(like(users.name, searchTerm), like(users.email, searchTerm)),
-        ];
-        if (role) {
-            conditions.push(eq(users.role, role));
-        }
-        const whereClause = and(...conditions);
-        // Get total count
-        const totalResult = await db
-            .select({ count: count() })
-            .from(users)
-            .where(whereClause);
-        const total = Number(totalResult[0]?.count || 0);
-        // Get users
-        const usersList = await db
-            .select({
-            id: users.id,
-            email: users.email,
-            name: users.name,
-            role: users.role,
-        })
-            .from(users)
-            .where(whereClause)
-            .limit(limit);
-        return c.json({
-            users: usersList,
-            total,
-        });
-    }
-    catch (error) {
-        console.error('Error searching users:', error);
-        return c.json({ error: 'Failed to search users' }, 500);
     }
 });
 export default usersRoute;

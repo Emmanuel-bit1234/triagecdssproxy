@@ -78,6 +78,20 @@
       "when": 1763479776825,
       "tag": "0010_daily_black_tarantula",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1763486117584,
+      "tag": "0011_redundant_ultimo",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1763486219606,
+      "tag": "0012_smart_stardust",
+      "breakpoints": true
     }
   ]
 }

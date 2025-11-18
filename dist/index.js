@@ -6,6 +6,7 @@ import predictionLogsRoute from "./routes/prediction-logs.js";
 import nurseReportsRoute from "./routes/nurse-reports.js";
 import patientsRoute from "./routes/patients.js";
 import usersRoute from "./routes/users.js";
+import messagesRoute from "./routes/messages.js";
 import { authMiddleware } from "./auth/middleware.js";
 import { db } from "./db/connection.js";
 import { predictionLogs } from "./db/schema.js";
@@ -30,6 +31,8 @@ app.route("/nurse-reports", nurseReportsRoute);
 app.route("/patients", patientsRoute);
 // User management routes
 app.route("/users", usersRoute);
+// Messaging routes
+app.route("/messages", messagesRoute);
 // Protected predict endpoint with logging
 app.post("/predict", authMiddleware, async (context) => {
     try {

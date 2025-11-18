@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, timestamp, text, integer, jsonb, real } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, timestamp, text, integer, jsonb, real, unique } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
@@ -60,9 +60,56 @@ export const predictionLogs = pgTable('prediction_logs', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+export const conversations = pgTable('conversations', {
+  id: serial('id').primaryKey(),
+  type: varchar('type', { length: 20 }).notNull().$type<'direct' | 'group'>(),
+  name: varchar('name', { length: 255 }), // NULL for direct, group name for groups
+  description: text('description'), // NULL for direct, description for groups
+  createdBy: integer('created_by').references(() => users.id), // NULL for direct, admin for groups
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const conversationParticipants = pgTable('conversation_participants', {
+  id: serial('id').primaryKey(),
+  conversationId: integer('conversation_id').notNull().references(() => conversations.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  joinedAt: timestamp('joined_at').defaultNow().notNull(),
+  lastReadAt: timestamp('last_read_at'), // Track when user last read messages
+}, (table) => ({
+  uniqueConversationUser: unique().on(table.conversationId, table.userId),
+}));
+
+export const messages = pgTable('messages', {
+  id: serial('id').primaryKey(),
+  conversationId: integer('conversation_id').notNull().references(() => conversations.id, { onDelete: 'cascade' }),
+  senderId: integer('sender_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  content: text('content').notNull(),
+  messageType: varchar('message_type', { length: 20 }).default('text').$type<'text' | 'file' | 'image'>(),
+  metadata: jsonb('metadata'), // For file URLs, image URLs, etc.
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  deletedAt: timestamp('deleted_at'), // Soft delete support
+});
+
+export const messageReads = pgTable('message_reads', {
+  id: serial('id').primaryKey(),
+  messageId: integer('message_id').notNull().references(() => messages.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  readAt: timestamp('read_at').defaultNow().notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Patient = typeof patients.$inferSelect;
 export type NewPatient = typeof patients.$inferInsert;
 export type PredictionLog = typeof predictionLogs.$inferSelect;
 export type NewPredictionLog = typeof predictionLogs.$inferInsert;
+export type Conversation = typeof conversations.$inferSelect;
+export type NewConversation = typeof conversations.$inferInsert;
+export type ConversationParticipant = typeof conversationParticipants.$inferSelect;
+export type NewConversationParticipant = typeof conversationParticipants.$inferInsert;
+export type Message = typeof messages.$inferSelect;
+export type NewMessage = typeof messages.$inferInsert;
+export type MessageRead = typeof messageReads.$inferSelect;
+export type NewMessageRead = typeof messageReads.$inferInsert;
