@@ -71,6 +71,13 @@
       "when": 1763208192530,
       "tag": "0009_unusual_blackheart",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1763479776825,
+      "tag": "0010_daily_black_tarantula",
+      "breakpoints": true
     }
   ]
 }

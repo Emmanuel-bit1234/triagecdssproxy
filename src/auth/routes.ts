@@ -12,7 +12,7 @@ const auth = new Hono<{ Variables: AuthVariables }>();
 auth.post('/register', async (c) => {
   try {
     const body: RegisterRequest = await c.req.json();
-    const { email, password, name } = body;
+    const { email, password, name, role } = body;
 
     // Validate input
     if (!email || !password || !name) {
@@ -21,6 +21,14 @@ auth.post('/register', async (c) => {
 
     if (password.length < 6) {
       return c.json({ error: 'Password must be at least 6 characters long' }, 400);
+    }
+
+    // Validate role if provided
+    const validRoles = ['Admin', 'Doctor', 'Nurse', 'User'];
+    if (role && !validRoles.includes(role)) {
+      return c.json({ 
+        error: `Invalid role. Must be one of: ${validRoles.join(', ')}` 
+      }, 400);
     }
 
     // Check if user already exists
@@ -35,10 +43,12 @@ auth.post('/register', async (c) => {
       email,
       passwordHash,
       name,
+      role: role || 'Nurse', // Use provided role or default to 'Nurse'
     }).returning({
       id: users.id,
       email: users.email,
       name: users.name,
+      role: users.role,
     });
 
     // Generate token
@@ -95,6 +105,7 @@ auth.post('/login', async (c) => {
         id: user.id,
         email: user.email,
         name: user.name,
+        role: user.role,
       },
       token,
     };

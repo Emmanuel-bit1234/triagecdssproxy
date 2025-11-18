@@ -5,6 +5,7 @@ export const users = pgTable('users', {
   email: varchar('email', { length: 255 }).notNull().unique(),
   passwordHash: varchar('password_hash', { length: 255 }).notNull(),
   name: varchar('name', { length: 255 }).notNull(),
+  role: varchar('role', { length: 50 }).notNull().default('Nurse').$type<'Admin' | 'Doctor' | 'Nurse' | 'User'>(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

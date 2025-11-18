@@ -28,6 +28,7 @@ export async function authMiddleware(c: Context<{ Variables: AuthVariables }>, n
       id: users.id,
       email: users.email,
       name: users.name,
+      role: users.role,
     }).from(users).where(eq(users.id, payload.userId)).limit(1);
 
     if (userResult.length === 0) {
@@ -56,6 +57,7 @@ export async function optionalAuthMiddleware(c: Context<{ Variables: AuthVariabl
           id: users.id,
           email: users.email,
           name: users.name,
+          role: users.role,
         }).from(users).where(eq(users.id, payload.userId)).limit(1);
 
         if (userResult.length > 0) {
@@ -68,5 +70,25 @@ export async function optionalAuthMiddleware(c: Context<{ Variables: AuthVariabl
   } catch (error) {
     console.error('Optional auth middleware error:', error);
     await next();
+  }
+}
+
+// Admin middleware - requires user to be authenticated and have Admin role
+export async function adminMiddleware(c: Context<{ Variables: AuthVariables }>, next: Next) {
+  try {
+    const user = c.get('user');
+    
+    if (!user) {
+      return c.json({ error: 'Authentication required' }, 401);
+    }
+
+    if (user.role !== 'Admin') {
+      return c.json({ error: 'Admin access required' }, 403);
+    }
+
+    await next();
+  } catch (error) {
+    console.error('Admin middleware error:', error);
+    return c.json({ error: 'Authorization failed' }, 403);
   }
 }

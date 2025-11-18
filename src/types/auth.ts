@@ -7,6 +7,7 @@ export interface RegisterRequest {
   email: string;
   password: string;
   name: string;
+  role?: 'Admin' | 'Doctor' | 'Nurse' | 'User'; // Optional, defaults to 'Nurse'
 }
 
 export interface AuthResponse {
@@ -14,6 +15,7 @@ export interface AuthResponse {
     id: number;
     email: string;
     name: string;
+    role: 'Admin' | 'Doctor' | 'Nurse' | 'User';
   };
   token: string;
 }
@@ -29,6 +31,7 @@ export interface AuthenticatedUser {
   id: number;
   email: string;
   name: string;
+  role: 'Admin' | 'Doctor' | 'Nurse' | 'User';
 }
 
 export interface AuthVariables {
