@@ -78,7 +78,7 @@ async function getOrCreateDirectConversation(userId1: number, userId2: number) {
       .from(conversationParticipants)
       .where(
         and(
-          sql`${conversationParticipants.conversationId} = ANY(${conversationIds})`,
+          inArray(conversationParticipants.conversationId, conversationIds),
           eq(conversationParticipants.userId, userId2)
         )
       )
@@ -91,7 +91,9 @@ async function getOrCreateDirectConversation(userId1: number, userId2: number) {
         .from(conversations)
         .where(eq(conversations.id, matchingConv[0].conversationId))
         .limit(1);
-      return conv[0];
+      if (conv.length > 0) {
+        return conv[0];
+      }
     }
   }
 
